@@ -13,39 +13,82 @@ from langchain.chat_models import ChatOpenAI, ChatAnthropic
 from langchain import PromptTemplate
 from dotenv import load_dotenv, find_dotenv
 
-load_dotenv(find_dotenv())
 
-# pinecone.init(api_key=os.getenv("PINECONE_API_KEY"), environment=os.getenv("PINECONE_ENVIRONMENT"))
+# Create a function to get the feedback from the AI model
+def get_feedback(statement, format="pdf"):
+    # Get the predictions from the AI model
+    predictions = model.predict(statement)
 
-dataset_path = "./dataset.txt"
-loader = TextLoader(dataset_path)
-comments = loader.load_and_split()
+    # Create a list of feedback
+    feedback = []
+    for prediction in predictions:
+        feedback.append(prediction["feedback"])
 
-embeddings = OpenAIEmbeddings(model_name="ada")
-vectordb = Chroma.from_documents(comments, embedding=embeddings, persist_directory=".")
-vectordb.persist()
-memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+    return feedback
 
-# Assuming that GPT-4 is used for grammar, structure, and fact-checking
-# and Claude is used for providing tips and encouraging students to do their own research
-grammar_llm = OpenAI(temperature=0.8)
-tips_llm = Claude(temperature=0.8)
+# Create a function to display the feedback
+def display_feedback(feedback):
+    st.header("📝 Here's your feedback:")
+    st.write(feedback)
 
-grammar_qa = ConversationalRetrievalChain.from_llm(grammar_llm, vectordb.as_retriever(), memory=memory)
-tips_qa = ConversationalRetrievalChain.from_llm(tips_llm, vectordb.as_retriever(), memory=memory)
+# Create a main function
+def main():
+    """
+    AI Statement Reviewer App
 
+    This application uses OpenAI's GPT-4 and Anthropic's Claude language models, along with the LangChain framework, to provide an AI-driven statement review service for students applying to universities. 
 
+    The app reviews student personal statements and gives feedback on several aspects:
+    1. Grammar and Structure: The app evaluates the grammar and structural integrity of the personal statement, providing suggestions for improvement where necessary.
+    2. Tips and Recommendations: The app gives personalized tips and recommendations, encouraging students to engage in their own research and further study.
 
-st.title('AI Statement Reviewer')
+    The application is designed to democratize access to high-quality personal statement advice, providing feedback that was previously only available to a select few. The ultimate goal is to enhance social mobility and level the playing field for all students, regardless of their background.
 
-user_input = st.text_area("Enter your personal statement here:")
+    This application is a part of Afinity.io's suite of student advice services, which aim to provide comprehensive guidance to students choosing courses at the university level. It is also an important step towards Afinity.io's vision for 2030: to have every student make informed study choices through the Afinity platform.
+    """
 
-if st.button('Get feedback'):
-    grammar_result = grammar_qa({"question": user_input})
-    tips_result = tips_qa({"question": user_input})
-    st.write("Grammar and Structure Feedback:")
-    st.write(grammar_result["answer"])
-    st.write("Tips and Recommendations:")
-    st.write(tips_result["answer"])
+    load_dotenv(find_dotenv())
 
+    st.set_page_config(
+        page_title="AI Statement Reviewer",
+        page_icon="📚",
+        layout="centered",
+        initial_sidebar_state="expanded",
+    )
 
+    st.title('🎓 AI Statement Reviewer 📝')
+
+    st.header('By Afinity.io')
+
+    st.markdown("""
+    This application uses AI to review and provide feedback on your university personal statement! 
+
+    Here's what it does:
+
+    1. 🧐 **Review your grammar and structure**: The AI, powered by GPT-4, will check your statement for any grammatical or structural issues.
+    2. 💡 **Provide tips and recommendations**: Claude, another advanced AI, gives personalized tips and recommendations to make your statement even better.
+
+    This tool is part of Afinity.io's mission to democratize access to high-quality advice for students, no matter their background.
+
+    Just upload your personal statement below, and let our AI give you feedback!
+    """)
+
+    uploaded_file = st.file_uploader("Upload your personal statement here", type=["txt", "docx", "pdf"])
+    text_input = st.text_area("Or paste your personal statement here:")
+
+    if uploaded_file is not None:
+        statement = uploaded_file.read().decode()
+        file_type = uploaded_file.type.split('/')[1]
+        if st.button('Get feedback for uploaded file'):
+            feedback = get_feedback(statement, file_type)
+            display_feedback(feedback)
+    elif text_input:
+        if st.button('Get feedback for pasted text'):
+            feedback = get_feedback(text_input, "text")
+            display_feedback(feedback)
+    else:
+        st.write("📤 Please upload your personal statement or paste it into the text box.")
+    
+
+if __name__ == "__main__":
+    main() 
