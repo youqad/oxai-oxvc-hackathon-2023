@@ -30,7 +30,12 @@ import docx
 # Load environment variables
 load_dotenv(find_dotenv()) 
 
-st.set_page_config(page_title="AI Statement Reviewer", page_icon="📚")  
+st.set_page_config(
+        page_title="AI Statement Reviewer",
+        page_icon="📚",
+        layout="centered",
+        initial_sidebar_state="expanded",
+    )
 
 # Models for selection 
 models = ['GPT-3.5', 'GPT-4', 'Claude']
@@ -102,18 +107,41 @@ def get_feedback(text, university, major):
     return feedback
 
 def display_feedback(feedback):
-    st.write("🌟 Here is the AI feedback:")
+    st.write("🌟 📝 Here is your AI feedback:")
     # Style the feedback
     st.markdown(f'<p style="font-size: 20px">{feedback}</p>', unsafe_allow_html=True)
 
 
 def main():
-    # Set page title and icon
+    """
+    AI Statement Reviewer App
+
+    This application provides an AI-driven statement review service for students applying to universities. 
+
+    The app reviews student personal statements and gives feedback on several aspects:
+    1. Grammar and Structure: The app evaluates the grammar and structural integrity of the personal statement, providing suggestions for improvement where necessary.
+    2. Tips and Recommendations: The app gives personalized tips and recommendations, encouraging students to engage in their own research and further study.
+
+    The application is designed to democratize access to high-quality personal statement advice, providing feedback that was previously only available to a select few. The ultimate goal is to enhance social mobility and level the playing field for all students, regardless of their background.
+
+    This application is a part of Afinity.io's suite of student advice services, which aim to provide comprehensive guidance to students choosing courses at the university level. It is also an important step towards Afinity.io's vision for 2030: to have every student make informed study choices through the Afinity platform.
+    """
     st.title("🎓 AI Statement Reviewer 📝")
     
-    # Add description 
     st.header('✨ By Affinity.io ✨')
-    # your markdown...
+    
+    st.markdown("""
+    This application uses AI to review and provide feedback on your university personal statement! 
+
+    Here's what it does:
+
+    1. 🧐 **Review your grammar and structure**: The AI, powered by GPT-4, will check your statement for any grammatical or structural issues.
+    2. 💡 **Provide tips and recommendations**: Claude, another advanced AI, gives personalized tips and recommendations to make your statement even better.
+
+    This tool is part of Afinity.io's mission to democratize access to high-quality advice for students, no matter their background.
+
+    Just upload your personal statement below, and let our AI give you feedback!
+    """)
     
     # Get file or text input 
     uploaded_file = st.file_uploader("📂 Upload your personal statement here", type=["pdf","docx","txt"], accept_multiple_files=True) 
@@ -136,7 +164,7 @@ def main():
             feedback = get_feedback(text_input, chosen_university, chosen_major) 
             display_feedback(feedback)
     else:
-        st.write("Please upload a file or enter your personal statement to get feedback. 📝") 
+        st.write("📤 Please upload a file or enter your personal statement to get feedback. 📝") 
 
 if __name__ == "__main__": 
     main()
