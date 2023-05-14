@@ -4,7 +4,7 @@ import streamlit as st
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings   
 from langchain.vectorstores import Chroma
-from langchain.chains import ConversationalRetrievalChain, LLMChain
+from langchain.chains import LLMChain # , ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 from langchain.vectorstores import FAISS
 
@@ -47,7 +47,7 @@ claude = ChatAnthropic()
 
 # Initialize session state
 if 'model' not in st.session_state:
-    st.session_state['model'] = 'GPT-3.5-turbo'
+    st.session_state['model'] = 'GPT-3.5'
 
 # Get model based on user selection
 selected_model = st.session_state['model']
@@ -91,15 +91,40 @@ def load_file(files):
 if 'text' not in st.session_state:
     st.session_state['text'] = ''
 
-template="You are an expert problem statement reviewer with an expertise in getting A-levels students studying {subject} admitted to their dream university: {university}."
-system_message_prompt = SystemMessagePromptTemplate.from_template(template)
-human_template="Can you give constructive criticism to improve my problem statement: {statement}"
-human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
+def get_prompt(subject, university):
+    system_template="You are an expert university admissions officer tasked with helping a student."
+    human_template="""This the student's personal statement:
+        {statement}
+        Mark the personal statement using this rubric, give a mark for each section and an overall mark: Appropriate Opening (1 point): The opening should be clear and focused, avoiding gimmicky or pretentious language.
+        Passion for Subject (5 points): The author should clearly express their interest in the subject matter, supported by evidence of wider reading and analytical reflection.
+        Analytical Reflection (5 points): The author should reflect on their wider reading and how it has developed their interest in the subject, supporting their ideas with evidence.
+        Extra-Curricular Activities (1 point): Relevant extracurricular activities should be mentioned briefly.
+        Strong Conclusion (1 point): The conclusion should be simple and directly related to the subject matter.
+        Spelling and Grammar (2 points): The author should ensure that their spelling and grammar are correct.
+        Tone (3 points): The tone should strike a balance between formality and casualness.
+        Clarity and Flow (2 points): The statement should be easy to read and have a clear structure.. For each attribute explain specifically how the student could improve/learn e.g., courses to take, projects to undertake. 
+        Provide a score for each section and an overall score, explain how they can improve each section."""
+    
+    if subject != "Infer from statement" and university != "Infer from statement":
+        system_template += f" The student wants to study {subject} at university and dreams of getting admitted into their dream university: {university}."
+        human_template += " Don't forget their desired major is {subject} and their desired university is {university}."
+    elif subject == "Infer from statement" and university != "Infer from statement":
+        system_template += f" The student dreams of getting admitted into their dream university: {university}."
+        human_template += " Don't forget their desired university is {university}."
+    elif subject != "Infer from statement" and university == "Infer from statement":
+        system_template += f" The student wants to study {subject} at university and dreams of getting admitted into their dream university."
+        human_template += " Don't forget their desired major is {subject}."
+    
+    system_message_prompt = SystemMessagePromptTemplate.from_template(system_template)
+    human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
 
-chat_prompt = ChatPromptTemplate.from_messages([system_message_prompt, human_message_prompt])
-chain = LLMChain(llm=llm, prompt=chat_prompt)
+    chat_prompt = ChatPromptTemplate.from_messages([system_message_prompt, human_message_prompt])
+
+    return chat_prompt
+
 
 def get_feedback(text, university, major):
+    chain = LLMChain(llm=llm, prompt=get_prompt(major, university))
     # Use a loading screen 
     with st.spinner('🔄 Generating feedback...'): 
         feedback = chain.predict(subject=major, university=university, statement=text, verbose=True)
