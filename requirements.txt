@@ -5,3 +5,4 @@ langchain
 python-dotenv
 pinecone-client
 pypdf2
+python-docx

@@ -26,27 +26,35 @@ from langchain.schema import (
 from io import StringIO
 from langchain.vectorstores import FAISS
 import PyPDF2
+import docx
 
 # Load environment variables
 load_dotenv(find_dotenv())  
+
+# Universities and Majors for selection
+universities = ['Oxford University', 'St Andrews University', 'Warwick University', 'University of Sheffield', 'University of Cambridge', 'Infer from statement']
+majors = ['English', 'Computer Science', 'Engineering', 'Mathematics', 'Biology', 'Infer from statement']
 
 # Set page config  
 st.set_page_config(page_title="AI Statement Reviewer", page_icon="📚")  
 
 @st.cache_data
 def load_file(files):
-    st.info("`Analysing...`")
+    # st.info("`Analysing...`")
     text = ""
     for file_path in files:
         file_extension = os.path.splitext(file_path.name)[1]
         if file_extension == ".pdf":
             pdf_reader = PyPDF2.PdfReader(file_path)
-            text += "".join([page.extractText() for page in pdf_reader.pages])
+            text += "".join([page.extract_text() for page in pdf_reader.pages])
         elif file_extension == ".txt":
             stringio = StringIO(file_path.getvalue().decode("utf-8"))
             text += stringio.read()
+        elif file_extension == ".docx":
+            doc = docx.Document(file_path)
+            text += " ".join([paragraph.text for paragraph in doc.paragraphs])
         else:
-            st.warning('Please provide a text or pdf file.', icon="⚠️")
+            st.warning('Please provide a text, pdf or docx file.', icon="⚠️")
     return text
 
 # Initialize session state
@@ -67,10 +75,10 @@ human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
 chat_prompt = ChatPromptTemplate.from_messages([system_message_prompt, human_message_prompt])
 chain = LLMChain(llm=llm, prompt=chat_prompt)
 
-def get_feedback(text):
+def get_feedback(text, university, major):
     # Use a loading screen 
     with st.spinner('🔄 Generating feedback...'): 
-        feedback = chain.predict(subject="English", university="Oxford University", statement=text, verbose=True)
+        feedback = chain.predict(subject=major, university=university, statement=text, verbose=True)
     print(feedback)
     return feedback
 
@@ -86,36 +94,30 @@ def main():
     
     # Add description 
     st.header('✨ By Affinity.io ✨')
-    st.markdown("""
-        This application uses advanced AI to review and provide feedback on your university personal statement! 👨‍🎓👩‍🎓
-        
-        Here's what it does:
-
-        1. 🧐 **Review your grammar and structure**: Our AI, powered by OpenAI's Davinci and Anthropic's Claude, will check your statement
-        for grammar and structure, helping you present your ideas clearly and effectively.
-        2. 💡 **Provide useful tips and recommendations**: The AI will provide insightful tips to strengthen your statement.
-        3. 🌐 **Support for all students**: Our goal is to provide high-quality, personalized feedback to students from all backgrounds.  
-        
-        Just upload your statement or paste it in the box below, and let's get started! 🚀
-     """)
+    # your markdown...
     
     # Get file or text input 
     uploaded_file = st.file_uploader("📂 Upload your personal statement here", type=["pdf","docx","txt"], accept_multiple_files=True) 
     text_input = st.text_area("💬 Or enter your personal statement here:", value=st.session_state['text'])
     st.session_state['text'] = text_input
     
+    # Get university and major
+    chosen_university = st.selectbox('🏛️ Select your University', universities)
+    chosen_major = st.selectbox('📘 Select your Major', majors)
+
     # Get and display feedback
     if uploaded_file is not None: 
         # Load text from file
         text = load_file(uploaded_file)  
         if st.button("🔍 Get Feedback"):
-            feedback = get_feedback(text) 
+            feedback = get_feedback(text, chosen_university, chosen_major) 
             display_feedback(feedback)
     elif text_input:
         if st.button("🔍 Get Feedback"):
-            feedback = get_feedback(text_input) 
+            feedback = get_feedback(text_input, chosen_university, chosen_major) 
             display_feedback(feedback)
     else:
         st.write("Please upload a file or enter your personal statement to get feedback. 📝") 
+
 if __name__ == "__main__": 
     main()
