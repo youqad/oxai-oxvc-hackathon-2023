@@ -26,7 +26,7 @@ This application was developed for the "OXVC x Creator Fund x OxAI Startup Hacka
 1. Clone the repository:
 
 ```
-git clone https://github.com/yourusername/yourrepo.git
+git clone https://github.com/youqad/oxai-oxvc-hackathon-2023/
 ```
 
 2. Install the required packages:
